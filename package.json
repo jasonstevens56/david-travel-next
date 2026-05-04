@@ -1,0 +1,35 @@
+{
+  "name": "david-travel-next",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "migrate": "python scripts/migrate-wordpress.py wordpress-exports/*.xml",
+    "copy-used-images": "python scripts/copy-used-images.py"
+  },
+  "dependencies": {
+    "@mdx-js/react": "latest",
+    "@portabletext/react": "^6.0.3",
+    "@sanity/client": "^7.22.0",
+    "@sanity/icons": "^3.7.4",
+    "@sanity/image-url": "^2.1.1",
+    "@sanity/structure": "^2.36.2",
+    "@sanity/vision": "^5.23.0",
+    "gray-matter": "latest",
+    "next": "latest",
+    "next-mdx-remote": "latest",
+    "next-sanity": "^12.4.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "sanity": "^5.23.0",
+    "styled-components": "^6.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
+  }
+}
