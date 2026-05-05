@@ -1,6 +1,8 @@
+import './globals.css'
+
 export const metadata = {
   title: 'David Travel',
-  description: 'Travel stories, guides, and blog posts from David Travel.',
+  description: 'Travel stories, guides, reviews, and practical travel advice.',
 }
 
 export default function RootLayout({
@@ -10,9 +12,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{margin: 0, fontFamily: 'Arial, sans-serif', background: '#fafafa', color: '#111'}}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

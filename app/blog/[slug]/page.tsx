@@ -1,6 +1,7 @@
-import fs from 'fs'
-import path from 'path'
-import Link from 'next/link'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import Sidebar from '@/components/Sidebar'
+import {getPostBySlug} from '@/lib/posts'
 import {notFound} from 'next/navigation'
 
 export default async function BlogPostPage({
@@ -9,25 +10,24 @@ export default async function BlogPostPage({
   params: Promise<{slug: string}>
 }) {
   const {slug} = await params
-  const postsDir = path.join(process.cwd(), 'content', 'posts')
-  const mdxPath = path.join(postsDir, `${slug}.mdx`)
-  const mdPath = path.join(postsDir, `${slug}.md`)
-  const filePath = fs.existsSync(mdxPath) ? mdxPath : fs.existsSync(mdPath) ? mdPath : null
+  const post = getPostBySlug(slug)
 
-  if (!filePath) notFound()
-
-  const raw = fs.readFileSync(filePath, 'utf8')
-  const titleMatch = raw.match(/title:\s*["']?(.+?)["']?\s*$/m)
-  const title = titleMatch?.[1] || slug.replaceAll('-', ' ')
-  const body = raw.replace(/^---[\s\S]*?---/, '').trim()
+  if (!post) notFound()
 
   return (
-    <main style={{maxWidth: 820, margin: '0 auto', padding: '48px 24px'}}>
-      <Link href="/blog" style={{color: '#555'}}>← Blog</Link>
-      <h1 style={{fontSize: 42, lineHeight: 1.1}}>{title}</h1>
-      <article style={{whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 18}}>
-        {body}
-      </article>
-    </main>
+    <>
+      <Header />
+      <main className="container layout-grid">
+        <article>
+          <div className="post-content">
+            {post.date && <div className="article-date">{post.date}</div>}
+            <h1 style={{fontSize: 46, lineHeight: 1.08, letterSpacing: '-0.04em'}}>{post.title}</h1>
+            <div dangerouslySetInnerHTML={{__html: post.content}} />
+          </div>
+        </article>
+        <Sidebar />
+      </main>
+      <Footer />
+    </>
   )
 }
