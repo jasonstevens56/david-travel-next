@@ -41,9 +41,6 @@ export default async function Sidebar() {
           <input type="email" name="email" placeholder="you@example.com" required />
           <button type="submit">Sign Up</button>
         </form>
-        <p style={{fontSize: 12, color: '#6b7280'}}>
-          Uses Buttondown. Create a free Buttondown account and set NEXT_PUBLIC_NEWSLETTER_ACTION to your subscribe URL when ready.
-        </p>
       </section>
     </aside>
   )

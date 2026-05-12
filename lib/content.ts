@@ -44,8 +44,18 @@ function makeExcerpt(text: string, fallback = '', length = 220) {
   return clean.slice(0, length).replace(/\\s+\\S*$/, '') + '...'
 }
 
+function safeSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&amp;/g, 'and')
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 type SanityPost = {
   _id: string
+  _createdAt?: string
   title?: string
   slug?: {current?: string}
   publishedAt?: string
@@ -57,6 +67,7 @@ type SanityPost = {
 
 const postFields = `
   _id,
+  _createdAt,
   title,
   slug,
   publishedAt,
@@ -67,13 +78,15 @@ const postFields = `
 `
 
 function normalizeSanityPost(post: SanityPost): Post {
-  const slug = post.slug?.current || post._id
+  const title = post.title || 'Untitled Post'
+  const slug = post.slug?.current || safeSlug(title) || post._id
   const text = blockToText(post.body || [])
+  const date = post.publishedAt || post._createdAt || new Date().toISOString()
 
   return {
-    title: post.title || slug.replaceAll('-', ' '),
+    title,
     slug,
-    date: post.publishedAt || '',
+    date,
     excerpt: makeExcerpt(text, post.excerpt || ''),
     featuredImage: imageUrl(post.mainImage) || '/logo.jpg',
     categories: (post.categories || []).map((cat) => cat.title || '').filter(Boolean),
@@ -85,9 +98,9 @@ function normalizeSanityPost(post: SanityPost): Post {
 export async function getSanityPosts(): Promise<Post[]> {
   try {
     const posts = await client.fetch<SanityPost[]>(
-      `*[_type == "post" && defined(slug.current)] | order(publishedAt desc) {${postFields}}`,
+      `*[_type == "post"] | order(coalesce(publishedAt, _createdAt) desc) {${postFields}}`,
       {},
-      {next: {revalidate: 60}}
+      {cache: 'no-store'}
     )
 
     return posts.map(normalizeSanityPost)
@@ -114,9 +127,9 @@ export async function getAllPublishedPosts(): Promise<PostMeta[]> {
 export async function getPublishedPostBySlug(slug: string): Promise<Post | null> {
   try {
     const sanityPost = await client.fetch<SanityPost | null>(
-      `*[_type == "post" && slug.current == $slug][0] {${postFields}}`,
+      `*[_type == "post" && (slug.current == $slug || _id == $slug)][0] {${postFields}}`,
       {slug},
-      {next: {revalidate: 60}}
+      {cache: 'no-store'}
     )
 
     if (sanityPost) return normalizeSanityPost(sanityPost)

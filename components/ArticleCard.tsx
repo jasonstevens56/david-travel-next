@@ -1,19 +1,15 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import type {PostMeta} from '@/lib/posts'
 
 export default function ArticleCard({post}: {post: PostMeta}) {
+  const imageSrc = post.featuredImage || '/logo.jpg'
+
   return (
     <article className="article-card">
       <Link href={`/blog/${post.slug}`} className="article-image" aria-label={post.title}>
-        <Image
-          src={post.featuredImage || '/logo.jpg'}
-          alt=""
-          width={520}
-          height={360}
-          unoptimized={String(post.featuredImage || '').startsWith('http')}
-        />
+        <img src={imageSrc} alt="" loading="lazy" />
       </Link>
+
       <div className="article-body">
         {post.date && <div className="article-date">{post.date}</div>}
         <h2>

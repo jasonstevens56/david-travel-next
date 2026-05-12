@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import SearchBox from './SearchBox'
 
@@ -8,14 +7,7 @@ export default function Header() {
       <header className="site-header">
         <div className="container header-inner">
           <Link href="/" className="logo-link" aria-label="David Travel home">
-            <Image
-              src="/logo.jpg"
-              alt="David Travel"
-              width={160}
-              height={160}
-              className="logo-img"
-              priority
-            />
+            <img src="/logo.jpg" alt="David Travel" className="logo-img" />
           </Link>
 
           <nav className="nav" aria-label="Primary navigation">
