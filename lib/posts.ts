@@ -29,7 +29,6 @@ function parseFrontmatter(raw: string): {data: Record<string, any>, content: str
   if (!raw.startsWith('---')) return {data: {}, content: raw}
   const end = raw.indexOf('\n---', 3)
   if (end === -1) return {data: {}, content: raw}
-
   const fm = raw.slice(3, end).trim()
   const content = raw.slice(end + 4).trim()
   const data: Record<string, any> = {}
@@ -41,7 +40,6 @@ function parseFrontmatter(raw: string): {data: Record<string, any>, content: str
     if (idx === -1) continue
     const key = line.slice(0, idx).trim()
     const rest = line.slice(idx + 1).trim()
-
     if (!rest && i + 1 < lines.length && lines[i + 1].trim().startsWith('- ')) {
       const arr: string[] = []
       while (i + 1 < lines.length && lines[i + 1].trim().startsWith('- ')) {
@@ -53,7 +51,6 @@ function parseFrontmatter(raw: string): {data: Record<string, any>, content: str
       data[key] = parseValue(rest)
     }
   }
-
   return {data, content}
 }
 
@@ -97,52 +94,74 @@ function publicFileExists(urlPath: string) {
 
 function preferFullSizeLocalImage(urlPath: string) {
   const fullSize = removeWordPressSizeSuffix(urlPath)
-  if (fullSize !== urlPath && publicFileExists(fullSize)) {
-    return fullSize
-  }
+  if (fullSize !== urlPath && publicFileExists(fullSize)) return fullSize
   return urlPath
 }
 
 function normalizeImageUrl(src: string | undefined) {
   if (!src) return undefined
-
   let cleaned = String(src).trim().replace(/^['"]|['"]$/g, '').replace(/&amp;/g, '&')
   if (!cleaned) return undefined
 
   const uploadsMatch = cleaned.match(/\/wp-content\/uploads\/(.+)$/i)
-  if (uploadsMatch?.[1]) {
-    return preferFullSizeLocalImage(`/wp-content/uploads/${uploadsMatch[1]}`)
-  }
-
-  if (cleaned.startsWith('wp-content/uploads/')) {
-    return preferFullSizeLocalImage(`/${cleaned}`)
-  }
-
-  if (cleaned.startsWith('uploads/')) {
-    return preferFullSizeLocalImage(`/wp-content/${cleaned}`)
-  }
-
-  if (cleaned.startsWith('/wp-content/uploads/')) {
-    return preferFullSizeLocalImage(cleaned)
-  }
-
+  if (uploadsMatch?.[1]) return preferFullSizeLocalImage(`/wp-content/uploads/${uploadsMatch[1]}`)
+  if (cleaned.startsWith('wp-content/uploads/')) return preferFullSizeLocalImage(`/${cleaned}`)
+  if (cleaned.startsWith('uploads/')) return preferFullSizeLocalImage(`/wp-content/${cleaned}`)
+  if (cleaned.startsWith('/wp-content/uploads/')) return preferFullSizeLocalImage(cleaned)
   if (cleaned.startsWith('/')) return cleaned
   if (cleaned.startsWith('//')) return `https:${cleaned}`
   if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned
-
   return cleaned
 }
 
-function findFirstImage(content: string, data: Record<string, any>) {
-  const candidates = [
-    data.featuredImage,
-    data.featured_image,
-    data.image,
-    data.coverImage,
-    data.thumbnail,
-    data.ogImage,
-  ]
+function mediaScore(fileName: string) {
+  const lower = fileName.toLowerCase()
+  if (lower.includes('150x150')) return -1000
+  if (lower.includes('300x')) return -200
+  if (lower.includes('768x')) return -100
+  if (lower.includes('logo')) return -900
+  if (lower.includes('icon')) return -800
+  if (lower.includes('avatar')) return -700
+  if (lower.includes('scaled')) return 500
+  return 100
+}
 
+function firstImageFromUploadMonth(date: string) {
+  const match = String(date || '').match(/^(\d{4})-(\d{2})/)
+  if (!match) return undefined
+  const year = match[1]
+  const month = match[2]
+  const dir = path.join(process.cwd(), 'public', 'wp-content', 'uploads', year, month)
+  if (!fs.existsSync(dir)) return undefined
+  const allowed = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'])
+  const files = fs.readdirSync(dir)
+    .filter((file) => allowed.has(path.extname(file).toLowerCase()))
+    .sort((a, b) => mediaScore(b) - mediaScore(a) || a.localeCompare(b))
+  if (!files.length) return undefined
+  return `/wp-content/uploads/${year}/${month}/${files[0]}`
+}
+
+function firstImageFromAnyUpload() {
+  const root = path.join(process.cwd(), 'public', 'wp-content', 'uploads')
+  if (!fs.existsSync(root)) return undefined
+  const allowed = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'])
+  const found: string[] = []
+  function walk(dir: string) {
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name)
+      if (fs.statSync(full).isDirectory()) walk(full)
+      else if (allowed.has(path.extname(name).toLowerCase())) found.push(full)
+    }
+  }
+  walk(root)
+  found.sort((a, b) => mediaScore(path.basename(b)) - mediaScore(path.basename(a)) || a.localeCompare(b))
+  const first = found[0]
+  if (!first) return undefined
+  return '/' + path.relative(path.join(process.cwd(), 'public'), first).split(path.sep).join('/')
+}
+
+function findReferencedImage(content: string, data: Record<string, any>) {
+  const candidates = [data.featuredImage, data.featured_image, data.image, data.coverImage, data.thumbnail, data.ogImage]
   for (const candidate of candidates) {
     const normalized = normalizeImageUrl(candidate)
     if (normalized) return normalized
@@ -153,7 +172,6 @@ function findFirstImage(content: string, data: Record<string, any>) {
     /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
     /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
   ]
-
   for (const pattern of htmlPatterns) {
     const match = content.match(pattern)?.[1]
     const normalized = normalizeImageUrl(match)
@@ -163,8 +181,11 @@ function findFirstImage(content: string, data: Record<string, any>) {
   const md = content.match(/!\[[^\]]*\]\(([^)]+)\)/)?.[1]
   const normalizedMd = normalizeImageUrl(md)
   if (normalizedMd) return normalizedMd
+  return undefined
+}
 
-  return '/logo.svg'
+function findBestImage(content: string, data: Record<string, any>, date: string) {
+  return findReferencedImage(content, data) || firstImageFromUploadMonth(date) || firstImageFromAnyUpload() || '/logo.svg'
 }
 
 function cleanImageAttributes(attrs: string) {
@@ -185,7 +206,6 @@ export function preparePostHtml(content: string) {
 
 export function getAllPosts(): PostMeta[] {
   if (!fs.existsSync(postsDirectory)) return []
-
   return fs.readdirSync(postsDirectory)
     .filter((file) => file.endsWith('.mdx') || file.endsWith('.md'))
     .map((file) => {
@@ -196,13 +216,12 @@ export function getAllPosts(): PostMeta[] {
       const date = String(data.date || data.publishedAt || '')
       const categories = normalizeArray(data.categories || data.category)
       const tags = normalizeArray(data.tags)
-
       return {
         title,
         slug,
         date,
         excerpt: makeExcerpt(content, String(data.excerpt || data.description || '')),
-        featuredImage: findFirstImage(content, data),
+        featuredImage: findBestImage(content, data, date),
         categories,
         tags,
       }
@@ -221,16 +240,19 @@ export function getPostBySlug(slug: string): Post | null {
   const date = String(data.date || data.publishedAt || '')
   const categories = normalizeArray(data.categories || data.category)
   const tags = normalizeArray(data.tags)
+  const image = findBestImage(content, data, date)
+  const prepared = preparePostHtml(content)
+  const hasImageInContent = /<img[^>]+src=/i.test(prepared)
 
   return {
     title,
     slug,
     date,
     excerpt: makeExcerpt(content, String(data.excerpt || data.description || '')),
-    featuredImage: findFirstImage(content, data),
+    featuredImage: image,
     categories,
     tags,
-    content: preparePostHtml(content),
+    content: hasImageInContent ? prepared : `<img src="${image}" alt="">\n\n${prepared}`,
   }
 }
 
@@ -241,8 +263,8 @@ export function slugify(value: string) {
 export function searchPosts(query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return []
-
   return getAllPosts().filter((post) => {
     return [post.title, post.excerpt, post.categories.join(' '), post.tags.join(' ')].join(' ').toLowerCase().includes(q)
   })
 }
+
