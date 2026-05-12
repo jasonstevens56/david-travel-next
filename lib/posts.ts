@@ -20,11 +20,7 @@ export type Post = PostMeta & {
 function parseValue(value: string): any {
   const trimmed = value.trim().replace(/^['"]|['"]$/g, '')
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-    return trimmed
-      .slice(1, -1)
-      .split(',')
-      .map((item) => item.trim().replace(/^['"]|['"]$/g, ''))
-      .filter(Boolean)
+    return trimmed.slice(1, -1).split(',').map((item) => item.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean)
   }
   return trimmed
 }
@@ -89,50 +85,22 @@ function normalizeArray(value: any): string[] {
 function normalizeImageUrl(src: string | undefined) {
   if (!src) return undefined
 
-  let cleaned = String(src)
-    .trim()
-    .replace(/^['"]|['"]$/g, '')
-    .replace(/&amp;/g, '&')
-
+  let cleaned = String(src).trim().replace(/^['"]|['"]$/g, '').replace(/&amp;/g, '&')
   if (!cleaned) return undefined
 
   const uploadsMatch = cleaned.match(/\/wp-content\/uploads\/(.+)$/i)
-  if (uploadsMatch?.[1]) {
-    return `/wp-content/uploads/${uploadsMatch[1]}`
-  }
+  if (uploadsMatch?.[1]) return `/wp-content/uploads/${uploadsMatch[1]}`
 
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
-    return cleaned
-  }
-
-  if (cleaned.startsWith('//')) {
-    return `https:${cleaned}`
-  }
-
-  if (cleaned.startsWith('/')) {
-    return cleaned
-  }
-
-  if (cleaned.startsWith('wp-content/uploads/')) {
-    return `/${cleaned}`
-  }
-
-  if (cleaned.startsWith('uploads/')) {
-    return `/wp-content/${cleaned}`
-  }
-
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned
+  if (cleaned.startsWith('//')) return `https:${cleaned}`
+  if (cleaned.startsWith('/')) return cleaned
+  if (cleaned.startsWith('wp-content/uploads/')) return `/${cleaned}`
+  if (cleaned.startsWith('uploads/')) return `/wp-content/${cleaned}`
   return cleaned
 }
 
 function findFirstImage(content: string, data: Record<string, any>) {
-  const candidates = [
-    data.featuredImage,
-    data.featured_image,
-    data.image,
-    data.coverImage,
-    data.thumbnail,
-    data.ogImage,
-  ]
+  const candidates = [data.featuredImage, data.featured_image, data.image, data.coverImage, data.thumbnail, data.ogImage]
 
   for (const candidate of candidates) {
     const normalized = normalizeImageUrl(candidate)
@@ -159,11 +127,10 @@ function findFirstImage(content: string, data: Record<string, any>) {
 }
 
 export function preparePostHtml(content: string) {
-  return content
-    .replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (_match, before, src, after) => {
-      const normalized = normalizeImageUrl(src) || '/logo.svg'
-      return `<img${before}src="${normalized}"${after} onerror="this.onerror=null;this.src='/logo.svg';">`
-    })
+  return content.replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (_match, before, src, after) => {
+    const normalized = normalizeImageUrl(src) || '/logo.svg'
+    return `<img${before}src="${normalized}"${after} onerror="this.onerror=null;this.src='/logo.svg';">`
+  })
 }
 
 export function getAllPosts(): PostMeta[] {
@@ -194,10 +161,7 @@ export function getAllPosts(): PostMeta[] {
 }
 
 export function getPostBySlug(slug: string): Post | null {
-  const fileCandidates = [
-    path.join(postsDirectory, `${slug}.mdx`),
-    path.join(postsDirectory, `${slug}.md`),
-  ]
+  const fileCandidates = [path.join(postsDirectory, `${slug}.mdx`), path.join(postsDirectory, `${slug}.md`)]
   const filePath = fileCandidates.find((candidate) => fs.existsSync(candidate))
   if (!filePath) return null
 
@@ -221,12 +185,7 @@ export function getPostBySlug(slug: string): Post | null {
 }
 
 export function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/&amp;/g, 'and')
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+  return value.toLowerCase().replace(/&amp;/g, 'and').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
 export function searchPosts(query: string) {
@@ -234,11 +193,6 @@ export function searchPosts(query: string) {
   if (!q) return []
 
   return getAllPosts().filter((post) => {
-    return [
-      post.title,
-      post.excerpt,
-      post.categories.join(' '),
-      post.tags.join(' '),
-    ].join(' ').toLowerCase().includes(q)
+    return [post.title, post.excerpt, post.categories.join(' '), post.tags.join(' ')].join(' ').toLowerCase().includes(q)
   })
 }
