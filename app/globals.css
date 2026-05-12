@@ -309,3 +309,19 @@ a { color: inherit; }
   .search-form { flex-direction: column; }
   .logo-img { height: 60px; width: 60px; }
 }
+
+/* Full-size restored WordPress images */
+.post-content img {
+  display: block;
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  margin: 24px auto;
+  border-radius: 14px;
+}
+
+.article-card .article-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

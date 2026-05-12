@@ -82,6 +82,27 @@ function normalizeArray(value: any): string[] {
   return String(value).split(',').map((v) => v.trim()).filter(Boolean)
 }
 
+function removeWordPressSizeSuffix(url: string) {
+  return url.replace(/-\d{2,5}x\d{2,5}(?=\.(jpg|jpeg|png|webp|gif|avif)$)/i, '')
+}
+
+function publicFileExists(urlPath: string) {
+  if (!urlPath.startsWith('/')) return false
+  try {
+    return fs.existsSync(path.join(process.cwd(), 'public', urlPath))
+  } catch {
+    return false
+  }
+}
+
+function preferFullSizeLocalImage(urlPath: string) {
+  const fullSize = removeWordPressSizeSuffix(urlPath)
+  if (fullSize !== urlPath && publicFileExists(fullSize)) {
+    return fullSize
+  }
+  return urlPath
+}
+
 function normalizeImageUrl(src: string | undefined) {
   if (!src) return undefined
 
@@ -89,13 +110,25 @@ function normalizeImageUrl(src: string | undefined) {
   if (!cleaned) return undefined
 
   const uploadsMatch = cleaned.match(/\/wp-content\/uploads\/(.+)$/i)
-  if (uploadsMatch?.[1]) return `/wp-content/uploads/${uploadsMatch[1]}`
+  if (uploadsMatch?.[1]) {
+    return preferFullSizeLocalImage(`/wp-content/uploads/${uploadsMatch[1]}`)
+  }
 
-  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned
-  if (cleaned.startsWith('//')) return `https:${cleaned}`
+  if (cleaned.startsWith('wp-content/uploads/')) {
+    return preferFullSizeLocalImage(`/${cleaned}`)
+  }
+
+  if (cleaned.startsWith('uploads/')) {
+    return preferFullSizeLocalImage(`/wp-content/${cleaned}`)
+  }
+
+  if (cleaned.startsWith('/wp-content/uploads/')) {
+    return preferFullSizeLocalImage(cleaned)
+  }
+
   if (cleaned.startsWith('/')) return cleaned
-  if (cleaned.startsWith('wp-content/uploads/')) return `/${cleaned}`
-  if (cleaned.startsWith('uploads/')) return `/wp-content/${cleaned}`
+  if (cleaned.startsWith('//')) return `https:${cleaned}`
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) return cleaned
 
   return cleaned
 }
@@ -134,10 +167,19 @@ function findFirstImage(content: string, data: Record<string, any>) {
   return '/logo.svg'
 }
 
+function cleanImageAttributes(attrs: string) {
+  return attrs
+    .replace(/\swidth=["'][^"']*["']/gi, '')
+    .replace(/\sheight=["'][^"']*["']/gi, '')
+    .replace(/\ssrcset=["'][^"']*["']/gi, '')
+    .replace(/\ssizes=["'][^"']*["']/gi, '')
+}
+
 export function preparePostHtml(content: string) {
   return content.replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (_match, before, src, after) => {
     const normalized = normalizeImageUrl(src) || '/logo.svg'
-    return `<img${before}src="${normalized}"${after}>`
+    const attrs = cleanImageAttributes(`${before}${after}`)
+    return `<img${attrs} src="${normalized}">`
   })
 }
 
