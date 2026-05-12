@@ -86,17 +86,84 @@ function normalizeArray(value: any): string[] {
   return String(value).split(',').map((v) => v.trim()).filter(Boolean)
 }
 
-function findFirstImage(content: string, data: Record<string, any>) {
-  const explicit = data.featuredImage || data.featured_image || data.image || data.coverImage
-  if (explicit) return String(explicit)
+function normalizeImageUrl(src: string | undefined) {
+  if (!src) return undefined
 
-  const html = content.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]
-  if (html) return html
+  let cleaned = String(src)
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/&amp;/g, '&')
+
+  if (!cleaned) return undefined
+
+  const uploadsMatch = cleaned.match(/\/wp-content\/uploads\/(.+)$/i)
+  if (uploadsMatch?.[1]) {
+    return `/wp-content/uploads/${uploadsMatch[1]}`
+  }
+
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    return cleaned
+  }
+
+  if (cleaned.startsWith('//')) {
+    return `https:${cleaned}`
+  }
+
+  if (cleaned.startsWith('/')) {
+    return cleaned
+  }
+
+  if (cleaned.startsWith('wp-content/uploads/')) {
+    return `/${cleaned}`
+  }
+
+  if (cleaned.startsWith('uploads/')) {
+    return `/wp-content/${cleaned}`
+  }
+
+  return cleaned
+}
+
+function findFirstImage(content: string, data: Record<string, any>) {
+  const candidates = [
+    data.featuredImage,
+    data.featured_image,
+    data.image,
+    data.coverImage,
+    data.thumbnail,
+    data.ogImage,
+  ]
+
+  for (const candidate of candidates) {
+    const normalized = normalizeImageUrl(candidate)
+    if (normalized) return normalized
+  }
+
+  const htmlPatterns = [
+    /<img[^>]+src=["']([^"']+)["']/i,
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+  ]
+
+  for (const pattern of htmlPatterns) {
+    const match = content.match(pattern)?.[1]
+    const normalized = normalizeImageUrl(match)
+    if (normalized) return normalized
+  }
 
   const md = content.match(/!\[[^\]]*\]\(([^)]+)\)/)?.[1]
-  if (md) return md
+  const normalizedMd = normalizeImageUrl(md)
+  if (normalizedMd) return normalizedMd
 
-  return '/logo.jpg'
+  return '/logo.svg'
+}
+
+export function preparePostHtml(content: string) {
+  return content
+    .replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (_match, before, src, after) => {
+      const normalized = normalizeImageUrl(src) || '/logo.svg'
+      return `<img${before}src="${normalized}"${after} onerror="this.onerror=null;this.src='/logo.svg';">`
+    })
 }
 
 export function getAllPosts(): PostMeta[] {
@@ -149,7 +216,7 @@ export function getPostBySlug(slug: string): Post | null {
     featuredImage: findFirstImage(content, data),
     categories,
     tags,
-    content,
+    content: preparePostHtml(content),
   }
 }
 

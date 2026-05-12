@@ -2,12 +2,22 @@ import Link from 'next/link'
 import type {PostMeta} from '@/lib/posts'
 
 export default function ArticleCard({post}: {post: PostMeta}) {
-  const imageSrc = post.featuredImage || '/logo.jpg'
+  const imageSrc = post.featuredImage || '/logo.svg'
 
   return (
     <article className="article-card">
       <Link href={`/blog/${post.slug}`} className="article-image" aria-label={post.title}>
-        <img src={imageSrc} alt="" loading="lazy" />
+        <img
+          src={imageSrc}
+          alt=""
+          loading="lazy"
+          onError={(event) => {
+            const img = event.currentTarget
+            if (!img.src.endsWith('/logo.svg')) {
+              img.src = '/logo.svg'
+            }
+          }}
+        />
       </Link>
 
       <div className="article-body">

@@ -7,7 +7,15 @@ export default function Header() {
       <header className="site-header">
         <div className="container header-inner">
           <Link href="/" className="logo-link" aria-label="David Travel home">
-            <img src="/logo.jpg" alt="David Travel" className="logo-img" />
+            <img
+              src="/logo.jpg"
+              alt="David Travel"
+              className="logo-img"
+              onError={(event) => {
+                const img = event.currentTarget
+                if (!img.src.endsWith('/logo.svg')) img.src = '/logo.svg'
+              }}
+            />
           </Link>
 
           <nav className="nav" aria-label="Primary navigation">

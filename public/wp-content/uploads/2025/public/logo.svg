@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="96" viewBox="0 0 420 96" role="img" aria-label="David Travel">
+  <rect width="420" height="96" rx="18" fill="#111827"/>
+  <circle cx="54" cy="48" r="28" fill="#f59e0b"/>
+  <path d="M38 53c22-22 41-24 56-5-18-5-34-2-56 5z" fill="#fff"/>
+  <text x="100" y="42" fill="#fff" font-size="28" font-family="Arial, Helvetica, sans-serif" font-weight="700">David</text>
+  <text x="100" y="70" fill="#f59e0b" font-size="28" font-family="Arial, Helvetica, sans-serif" font-weight="700">Travel</text>
+</svg>
