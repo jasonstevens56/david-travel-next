@@ -96,11 +96,19 @@ function normalizeImageUrl(src: string | undefined) {
   if (cleaned.startsWith('/')) return cleaned
   if (cleaned.startsWith('wp-content/uploads/')) return `/${cleaned}`
   if (cleaned.startsWith('uploads/')) return `/wp-content/${cleaned}`
+
   return cleaned
 }
 
 function findFirstImage(content: string, data: Record<string, any>) {
-  const candidates = [data.featuredImage, data.featured_image, data.image, data.coverImage, data.thumbnail, data.ogImage]
+  const candidates = [
+    data.featuredImage,
+    data.featured_image,
+    data.image,
+    data.coverImage,
+    data.thumbnail,
+    data.ogImage,
+  ]
 
   for (const candidate of candidates) {
     const normalized = normalizeImageUrl(candidate)
@@ -129,7 +137,7 @@ function findFirstImage(content: string, data: Record<string, any>) {
 export function preparePostHtml(content: string) {
   return content.replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (_match, before, src, after) => {
     const normalized = normalizeImageUrl(src) || '/logo.svg'
-    return `<img${before}src="${normalized}"${after} onerror="this.onerror=null;this.src='/logo.svg';">`
+    return `<img${before}src="${normalized}"${after}>`
   })
 }
 

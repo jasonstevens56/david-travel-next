@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import SearchBox from './SearchBox'
+import ImageWithFallback from './ImageWithFallback'
 
 export default function Header() {
   return (
@@ -7,14 +8,12 @@ export default function Header() {
       <header className="site-header">
         <div className="container header-inner">
           <Link href="/" className="logo-link" aria-label="David Travel home">
-            <img
+            <ImageWithFallback
               src="/logo.jpg"
+              fallbackSrc="/logo.svg"
               alt="David Travel"
               className="logo-img"
-              onError={(event) => {
-                const img = event.currentTarget
-                if (!img.src.endsWith('/logo.svg')) img.src = '/logo.svg'
-              }}
+              loading="eager"
             />
           </Link>
 
