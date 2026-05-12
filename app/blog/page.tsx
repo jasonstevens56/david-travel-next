@@ -1,28 +1,3 @@
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import ArticleCard from '@/components/ArticleCard'
-import Sidebar from '@/components/Sidebar'
-import {getAllPosts} from '@/lib/posts'
-
-export const metadata = {
-  title: 'Blog | David Travel',
-}
-
 export default function BlogPage() {
-  const posts = getAllPosts()
-
-  return (
-    <>
-      <Header />
-      <main className="container layout-grid">
-        <section className="article-list">
-          {posts.map((post) => (
-            <ArticleCard key={post.slug} post={post} />
-          ))}
-        </section>
-        <Sidebar />
-      </main>
-      <Footer />
-    </>
-  )
+  return <div>Blog connected to Sanity</div>
 }
