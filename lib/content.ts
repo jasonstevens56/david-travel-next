@@ -20,6 +20,12 @@ export type PublishedPost = {
   content: string
 }
 
+export type PublishedCategory = {
+  name: string
+  slug: string
+  count: number
+}
+
 function toPublishedPost(post: PostMeta, content = ''): PublishedPost {
   return {
     title: post.title,
@@ -65,12 +71,34 @@ export async function getRecentPosts(limit = 6) {
   return posts.slice(0, limit)
 }
 
-export async function getPublishedCategories() {
+export async function getPublishedCategories(): Promise<PublishedCategory[]> {
   const posts = await getAllPublishedPosts()
-  return Array.from(new Set(posts.flatMap((post) => post.categories || []).filter(Boolean))).sort()
+  const counts = new Map<string, {name: string; count: number}>()
+
+  for (const post of posts) {
+    for (const category of post.categories || []) {
+      const name = String(category || '').trim()
+      if (!name) continue
+      const key = slugify(name)
+      const existing = counts.get(key)
+      if (existing) {
+        existing.count += 1
+      } else {
+        counts.set(key, {name, count: 1})
+      }
+    }
+  }
+
+  return Array.from(counts.entries())
+    .map(([slug, value]) => ({
+      name: value.name,
+      slug,
+      count: value.count,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export async function getCategories() {
+export async function getCategories(): Promise<PublishedCategory[]> {
   return getPublishedCategories()
 }
 
