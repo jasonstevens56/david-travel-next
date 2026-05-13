@@ -7,6 +7,8 @@ import {
   type PostMeta,
 } from './posts'
 
+export { slugify }
+
 export type PublishedPost = {
   title: string
   slug: string
@@ -24,7 +26,7 @@ function toPublishedPost(post: PostMeta, content = ''): PublishedPost {
     slug: post.slug,
     date: post.date,
     excerpt: post.excerpt,
-    featuredImage: post.featuredImage && post.featuredImage !== '/logo.svg' ? post.featuredImage : post.featuredImage,
+    featuredImage: post.featuredImage,
     categories: post.categories || [],
     tags: post.tags || [],
     content,
@@ -44,8 +46,12 @@ function toPublishedFullPost(post: Post): PublishedPost {
   }
 }
 
-export async function getPublishedPosts(): Promise<PublishedPost[]> {
+export async function getAllPublishedPosts(): Promise<PublishedPost[]> {
   return getAllPosts().map((post) => toPublishedPost(post))
+}
+
+export async function getPublishedPosts(): Promise<PublishedPost[]> {
+  return getAllPublishedPosts()
 }
 
 export async function getPublishedPostBySlug(slug: string): Promise<PublishedPost | null> {
@@ -55,17 +61,21 @@ export async function getPublishedPostBySlug(slug: string): Promise<PublishedPos
 }
 
 export async function getRecentPosts(limit = 6) {
-  const posts = await getPublishedPosts()
+  const posts = await getAllPublishedPosts()
   return posts.slice(0, limit)
 }
 
-export async function getCategories() {
-  const posts = await getPublishedPosts()
+export async function getPublishedCategories() {
+  const posts = await getAllPublishedPosts()
   return Array.from(new Set(posts.flatMap((post) => post.categories || []).filter(Boolean))).sort()
 }
 
+export async function getCategories() {
+  return getPublishedCategories()
+}
+
 export async function getPostsByCategory(category: string) {
-  const posts = await getPublishedPosts()
+  const posts = await getAllPublishedPosts()
   const wanted = slugify(category)
   return posts.filter((post) => post.categories.some((cat) => slugify(cat) === wanted))
 }
